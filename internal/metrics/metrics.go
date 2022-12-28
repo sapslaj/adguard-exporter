@@ -34,7 +34,7 @@ var (
 			Namespace: "adguard",
 			Help:      "Counter of log entries seen in query log",
 		},
-		[]string{"hostname"},
+		[]string{"hostname", "reason", "status"},
 	)
 
 	// DnsQueryAnswerCount - Counter of query answers based on query log

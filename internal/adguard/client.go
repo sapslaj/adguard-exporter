@@ -177,7 +177,7 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 }
 
 func (c *Client) measureQueryLogEntry(entry LogData) error {
-	metrics.DnsQueryCount.WithLabelValues(c.hostname).Inc()
+	metrics.DnsQueryCount.With(prometheus.Labels{"hostname": c.hostname, "reason": string(entry.Reason), "status": entry.Status}).Inc()
 
 	for _, answer := range entry.Answer {
 		dnsType := ""

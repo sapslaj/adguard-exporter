@@ -62,6 +62,47 @@ type DNSQuery struct {
 	Type  string `json:"type"`
 }
 
+// Reason holds an enum detailing why it was filtered or not filtered
+type Reason string
+
+const (
+	// reasons for not filtering
+
+	// NotFilteredNotFound - host was not find in any checks, default value for result
+	NotFilteredNotFound Reason = "NotFilteredNotFound"
+	// NotFilteredAllowList - the host is explicitly allowed
+	NotFilteredAllowList Reason = "NotFilteredWhiteList"
+	// NotFilteredError is returned when there was an error during
+	// checking.  Reserved, currently unused.
+	NotFilteredError Reason = "NotFilteredError"
+
+	// reasons for filtering
+
+	// FilteredBlockList - the host was matched to be advertising host
+	FilteredBlockList Reason = "FilteredBlackList"
+	// FilteredSafeBrowsing - the host was matched to be malicious/phishing
+	FilteredSafeBrowsing Reason = "FilteredSafeBrowsing"
+	// FilteredParental - the host was matched to be outside of parental control settings
+	FilteredParental Reason = "FilteredParental"
+	// FilteredInvalid - the request was invalid and was not processed
+	FilteredInvalid Reason = "FilteredInvalid"
+	// FilteredSafeSearch - the host was replaced with safesearch variant
+	FilteredSafeSearch Reason = "FilteredSafeSearch"
+	// FilteredBlockedService - the host is blocked by "blocked services" settings
+	FilteredBlockedService Reason = "FilteredBlockedService"
+
+	// Rewritten is returned when there was a rewrite by a legacy DNS rewrite
+	// rule.
+	Rewritten Reason = "Rewrite"
+
+	// RewrittenAutoHosts is returned when there was a rewrite by autohosts
+	// rules (/etc/hosts and so on).
+	RewrittenAutoHosts Reason = "RewriteEtcHosts"
+
+	// RewrittenRule is returned when a $dnsrewrite filter rule was applied.
+	RewrittenRule Reason = "RewriteRule"
+)
+
 // LogData struct, sub struct of LogStats to collect the dns stats from the log
 type LogData struct {
 	Answer      []DNSAnswer `json:"answer"`
@@ -70,7 +111,7 @@ type LogData struct {
 	ClientProto string      `json:"client_proto"`
 	Elapsed     string      `json:"elapsedMs"`
 	Question    DNSQuery    `json:"question"`
-	Reason      string      `json:"reason"`
+	Reason      Reason      `json:"reason"`
 	Status      string      `json:"status"`
 	Time        string      `json:"time"`
 	Upstream    string      `json:"upstream"`
