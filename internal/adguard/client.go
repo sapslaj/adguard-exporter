@@ -16,6 +16,7 @@ import (
 
 	"github.com/ebrianne/adguard-exporter/internal/metrics"
 	"github.com/mitchellh/mapstructure"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -24,7 +25,6 @@ var (
 	statsURLPattern       = "%s://%s:%d/control/stats"
 	logstatsURLPattern    = "%s://%s:%d/control/querylog?limit=%s&response_status=\"all\""
 	resolveRDNSURLPattern = "%s://%s:%d/control/clients/find?%s"
-	m                     map[string]int
 )
 
 // Client struct is a AdGuard  client to request an instance of a AdGuard  ad blocker.
@@ -130,30 +130,30 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 		}
 	}
 
-	//LogQuery
-	m = make(map[string]int)
+	// //LogQuery
+	// m = make(map[string]int)
 	logdata := logstats.Data
-	for i := range logdata {
-		dnsanswer := logdata[i].Answer
-		if dnsanswer != nil && len(dnsanswer) > 0 {
-			for j := range dnsanswer {
-				var dnsType string
-				//Check the type of dnsanswer[j].Value, if string leave it be, otherwise get back the object to get the correct DNS type
-				switch v := dnsanswer[j].Value.(type) {
-				case string:
-					dnsType = dnsanswer[j].Type
-					m[dnsType] += 1
-				case map[string]interface{}:
-					var dns65 Type65
-					mapstructure.Decode(v, &dns65)
-					dnsType = "TYPE" + strconv.Itoa(dns65.Hdr.Rrtype)
-					m[dnsType] += 1
-				default:
-					continue
-				}
-			}
-		}
-	}
+	// for i := range logdata {
+	// 	dnsanswer := logdata[i].Answer
+	// 	if dnsanswer != nil && len(dnsanswer) > 0 {
+	// 		for j := range dnsanswer {
+	// 			var dnsType string
+	// 			//Check the type of dnsanswer[j].Value, if string leave it be, otherwise get back the object to get the correct DNS type
+	// 			switch v := dnsanswer[j].Value.(type) {
+	// 			case string:
+	// 				dnsType = dnsanswer[j].Type
+	// 				m[dnsType] += 1
+	// 			case map[string]interface{}:
+	// 				var dns65 Type65
+	// 				mapstructure.Decode(v, &dns65)
+	// 				dnsType = "TYPE" + strconv.Itoa(dns65.Hdr.Rrtype)
+	// 				m[dnsType] += 1
+	// 			default:
+	// 				continue
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	// query log metrics
 	// Need to make sure the log data is sorted by time so that cursoring works
@@ -170,13 +170,13 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 	})
 	cursorFound := false
 	var newCursor uint64
-	for i, logDatum := range logdata {
+	for i, entry := range logdata {
 		hasher := fnv.New64()
-		hasher.Write([]byte(logDatum.Time))
-		hasher.Write([]byte(logDatum.Client))
-		hasher.Write([]byte(logDatum.Question.Class))
-		hasher.Write([]byte(logDatum.Question.Host))
-		hasher.Write([]byte(logDatum.Question.Type))
+		hasher.Write([]byte(entry.Time))
+		hasher.Write([]byte(entry.Client))
+		hasher.Write([]byte(entry.Question.Class))
+		hasher.Write([]byte(entry.Question.Host))
+		hasher.Write([]byte(entry.Question.Type))
 		hash := hasher.Sum64()
 		if i == 0 {
 			newCursor = hash
@@ -190,7 +190,7 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 			cursorFound = true
 			break
 		}
-		metrics.DnsQueryLogCount.WithLabelValues(c.hostname).Inc()
+		c.measureQueryLogEntry(entry)
 	}
 
 	if c.logCursor != 0 && !cursorFound {
@@ -199,14 +199,35 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 
 	c.logCursor = newCursor
 
-	for key, value := range m {
-		metrics.QueryTypes.WithLabelValues(c.hostname, key).Set(float64(value))
+	// for key, value := range m {
+	// 	metrics.QueryTypes.WithLabelValues(c.hostname, key).Set(float64(value))
+	// }
+
+	// //clear the map
+	// for k := range m {
+	// 	delete(m, k)
+	// }
+}
+
+func (c *Client) measureQueryLogEntry(entry LogData) error {
+	metrics.DnsQueryLogCount.WithLabelValues(c.hostname).Inc()
+
+	for _, answer := range entry.Answer {
+		dnsType := ""
+		switch v := answer.Value.(type) {
+		case string:
+			dnsType = answer.Type
+		case map[string]interface{}:
+			var dns65 Type65
+			mapstructure.Decode(v, &dns65)
+			dnsType = "TYPE" + strconv.Itoa(dns65.Hdr.Rrtype)
+		default:
+			continue
+		}
+		metrics.DnsQueryAnswerCount.With(prometheus.Labels{"hostname": c.hostname, "type": dnsType}).Inc()
 	}
 
-	//clear the map
-	for k := range m {
-		delete(m, k)
-	}
+	return nil
 }
 
 // Function to get the general stats

@@ -37,6 +37,16 @@ var (
 		[]string{"hostname"},
 	)
 
+	// DnsQueryAnswerCount - Counter of query answers based on query log
+	DnsQueryAnswerCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name:      "dns_query_answer_count",
+			Namespace: "adguard",
+			Help:      "Counter of query answers based on query log",
+		},
+		[]string{"hostname", "type"},
+	)
+
 	// BlockedFiltering - Number of DNS queries blocked
 	BlockedFiltering = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -107,16 +117,6 @@ var (
 		[]string{"hostname", "client"},
 	)
 
-	// QueryTypes - The type of DNS Queries (A, AAAA...)
-	QueryTypes = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name:      "query_types",
-			Namespace: "adguard",
-			Help:      "This represent the DNS query types",
-		},
-		[]string{"hostname", "type"},
-	)
-
 	// Running - If Adguard is running
 	Running = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -143,6 +143,7 @@ func Init() {
 	initMetric("avg_processing_time", AvgProcessingTime)
 	initMetric("num_dns_queries", DnsQueries)
 	initMetric("dns_query_log_count", DnsQueryLogCount)
+	initMetric("dns_query_answer_count", DnsQueryAnswerCount)
 	initMetric("num_blocked_filtering", BlockedFiltering)
 	initMetric("num_replaced_parental", ParentalFiltering)
 	initMetric("num_replaced_safebrowsing", SafeBrowsingFiltering)
@@ -150,7 +151,6 @@ func Init() {
 	initMetric("top_queried_domains", TopQueries)
 	initMetric("top_blocked_domains", TopBlocked)
 	initMetric("top_clients", TopClients)
-	initMetric("query_types", QueryTypes)
 	initMetric("running", Running)
 	initMetric("protection_enabled", ProtectionEnabled)
 }
