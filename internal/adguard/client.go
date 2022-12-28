@@ -98,7 +98,7 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 
 	//Stats
 	metrics.AvgProcessingTime.WithLabelValues(c.hostname).Set(float64(stats.AvgProcessingTime))
-	metrics.DnsQueries.WithLabelValues(c.hostname).Set(float64(stats.DnsQueries))
+	metrics.QueryLogSize.WithLabelValues(c.hostname).Set(float64(stats.DnsQueries))
 	metrics.BlockedFiltering.WithLabelValues(c.hostname).Set(float64(stats.BlockedFiltering))
 	metrics.ParentalFiltering.WithLabelValues(c.hostname).Set(float64(stats.ParentalFiltering))
 	metrics.SafeBrowsingFiltering.WithLabelValues(c.hostname).Set(float64(stats.SafeBrowsingFiltering))
@@ -130,33 +130,9 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 		}
 	}
 
-	// //LogQuery
-	// m = make(map[string]int)
-	logdata := logstats.Data
-	// for i := range logdata {
-	// 	dnsanswer := logdata[i].Answer
-	// 	if dnsanswer != nil && len(dnsanswer) > 0 {
-	// 		for j := range dnsanswer {
-	// 			var dnsType string
-	// 			//Check the type of dnsanswer[j].Value, if string leave it be, otherwise get back the object to get the correct DNS type
-	// 			switch v := dnsanswer[j].Value.(type) {
-	// 			case string:
-	// 				dnsType = dnsanswer[j].Type
-	// 				m[dnsType] += 1
-	// 			case map[string]interface{}:
-	// 				var dns65 Type65
-	// 				mapstructure.Decode(v, &dns65)
-	// 				dnsType = "TYPE" + strconv.Itoa(dns65.Hdr.Rrtype)
-	// 				m[dnsType] += 1
-	// 			default:
-	// 				continue
-	// 			}
-	// 		}
-	// 	}
-	// }
-
 	// query log metrics
 	// Need to make sure the log data is sorted by time so that cursoring works
+	logdata := logstats.Data
 	sort.Slice(logdata, func(i, j int) bool {
 		a, err := time.Parse(time.RFC3339Nano, logdata[i].Time)
 		if err != nil {
@@ -198,15 +174,6 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 	}
 
 	c.logCursor = newCursor
-
-	// for key, value := range m {
-	// 	metrics.QueryTypes.WithLabelValues(c.hostname, key).Set(float64(value))
-	// }
-
-	// //clear the map
-	// for k := range m {
-	// 	delete(m, k)
-	// }
 }
 
 func (c *Client) measureQueryLogEntry(entry LogData) error {

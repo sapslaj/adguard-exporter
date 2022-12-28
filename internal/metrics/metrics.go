@@ -17,12 +17,12 @@ var (
 		[]string{"hostname"},
 	)
 
-	// DnsQueries - Number of DNS queries
-	DnsQueries = prometheus.NewGaugeVec(
+	// QueryLogSize - Number of DNS queries in the query log
+	QueryLogSize = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name:      "num_dns_queries",
+			Name:      "query_log_size",
 			Namespace: "adguard",
-			Help:      "Number of DNS queries",
+			Help:      "Size of query log",
 		},
 		[]string{"hostname"},
 	)
@@ -141,7 +141,7 @@ var (
 // Init initializes all Prometheus metrics made available by AdGuard  exporter.
 func Init() {
 	initMetric("avg_processing_time", AvgProcessingTime)
-	initMetric("num_dns_queries", DnsQueries)
+	initMetric("num_dns_queries", QueryLogSize)
 	initMetric("dns_query_log_count", DnsQueryCount)
 	initMetric("dns_query_answer_count", DnsQueryAnswerCount)
 	initMetric("num_blocked_filtering", BlockedFiltering)
