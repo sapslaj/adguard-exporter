@@ -27,6 +27,16 @@ var (
 		[]string{"hostname"},
 	)
 
+	// DnsQueryLogCount - Counter of log entries seen in query log
+	DnsQueryLogCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name:      "dns_query_log_count",
+			Namespace: "adguard",
+			Help:      "Counter of log entries seen in query log",
+		},
+		[]string{"hostname"},
+	)
+
 	// BlockedFiltering - Number of DNS queries blocked
 	BlockedFiltering = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -132,6 +142,7 @@ var (
 func Init() {
 	initMetric("avg_processing_time", AvgProcessingTime)
 	initMetric("num_dns_queries", DnsQueries)
+	initMetric("dns_query_log_count", DnsQueryLogCount)
 	initMetric("num_blocked_filtering", BlockedFiltering)
 	initMetric("num_replaced_parental", ParentalFiltering)
 	initMetric("num_replaced_safebrowsing", SafeBrowsingFiltering)
@@ -144,7 +155,7 @@ func Init() {
 	initMetric("protection_enabled", ProtectionEnabled)
 }
 
-func initMetric(name string, metric *prometheus.GaugeVec) {
+func initMetric(name string, metric prometheus.Collector) {
 	prometheus.MustRegister(metric)
 	log.Printf("New Prometheus metric registered: %s", name)
 }

@@ -4,10 +4,12 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +38,7 @@ type Client struct {
 	username    string
 	password    string
 	rdnsenabled bool
+	logCursor   uint64
 }
 
 // NewClient method initializes a new AdGuard  client.
@@ -151,6 +154,50 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 			}
 		}
 	}
+
+	// query log metrics
+	// Need to make sure the log data is sorted by time so that cursoring works
+	sort.Slice(logdata, func(i, j int) bool {
+		a, err := time.Parse(time.RFC3339Nano, logdata[i].Time)
+		if err != nil {
+			log.Printf("Unable to parse query log entry timestamp '%s': %s", logdata[i].Time, err)
+		}
+		b, err := time.Parse(time.RFC3339Nano, logdata[j].Time)
+		if err != nil {
+			log.Printf("Unable to parse query log entry timestamp '%s': %s", logdata[j].Time, err)
+		}
+		return a.After(b)
+	})
+	cursorFound := false
+	var newCursor uint64
+	for i, logDatum := range logdata {
+		hasher := fnv.New64()
+		hasher.Write([]byte(logDatum.Time))
+		hasher.Write([]byte(logDatum.Client))
+		hasher.Write([]byte(logDatum.Question.Class))
+		hasher.Write([]byte(logDatum.Question.Host))
+		hasher.Write([]byte(logDatum.Question.Type))
+		hash := hasher.Sum64()
+		if i == 0 {
+			newCursor = hash
+		}
+		if c.logCursor == 0 {
+			// Skip counting log entries if there isn't a cursor set to prevent
+			// artifical metric inflation on exporter startup.
+			break
+		}
+		if hash == c.logCursor {
+			cursorFound = true
+			break
+		}
+		metrics.DnsQueryLogCount.WithLabelValues(c.hostname).Inc()
+	}
+
+	if c.logCursor != 0 && !cursorFound {
+		log.Println("Cursor never found in latest query log batch. Consider increasing log_limit and/or decreasing interval to improve metrics accuracy.")
+	}
+
+	c.logCursor = newCursor
 
 	for key, value := range m {
 		metrics.QueryTypes.WithLabelValues(c.hostname, key).Set(float64(value))
