@@ -85,13 +85,13 @@ func (c *Client) Scrape() {
 func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rdns map[string]string) {
 	//Status
 	var isRunning int = 0
-	if status.Running == true {
+	if status.Running {
 		isRunning = 1
 	}
 	metrics.Running.WithLabelValues(c.hostname).Set(float64(isRunning))
 
 	var isProtected int = 0
-	if status.ProtectionEnabled == true {
+	if status.ProtectionEnabled {
 		isProtected = 1
 	}
 	metrics.ProtectionEnabled.WithLabelValues(c.hostname).Set(float64(isProtected))
@@ -232,7 +232,7 @@ func (c *Client) getStatistics() *AllStats {
 	if c.rdnsenabled {
 		var sb strings.Builder
 		for l := range stats.TopClients {
-			for source, _ := range stats.TopClients[l] {
+			for source := range stats.TopClients[l] {
 				sb.WriteString(fmt.Sprintf("ip%d=%s", l, source))
 				if l < len(stats.TopClients)-1 {
 					sb.WriteString("&")
