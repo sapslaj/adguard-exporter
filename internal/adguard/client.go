@@ -210,7 +210,7 @@ func (c *Client) setMetrics(status *Status, stats *Stats, logstats *LogStats, rd
 }
 
 func (c *Client) measureQueryLogEntry(entry LogData) error {
-	metrics.DnsQueryLogCount.WithLabelValues(c.hostname).Inc()
+	metrics.DnsQueryCount.WithLabelValues(c.hostname).Inc()
 
 	for _, answer := range entry.Answer {
 		dnsType := ""

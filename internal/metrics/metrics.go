@@ -27,10 +27,10 @@ var (
 		[]string{"hostname"},
 	)
 
-	// DnsQueryLogCount - Counter of log entries seen in query log
-	DnsQueryLogCount = prometheus.NewCounterVec(
+	// DnsQueryCount - Counter of log entries seen in query log
+	DnsQueryCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name:      "dns_query_log_count",
+			Name:      "dns_query_count",
 			Namespace: "adguard",
 			Help:      "Counter of log entries seen in query log",
 		},
@@ -142,7 +142,7 @@ var (
 func Init() {
 	initMetric("avg_processing_time", AvgProcessingTime)
 	initMetric("num_dns_queries", DnsQueries)
-	initMetric("dns_query_log_count", DnsQueryLogCount)
+	initMetric("dns_query_log_count", DnsQueryCount)
 	initMetric("dns_query_answer_count", DnsQueryAnswerCount)
 	initMetric("num_blocked_filtering", BlockedFiltering)
 	initMetric("num_replaced_parental", ParentalFiltering)
